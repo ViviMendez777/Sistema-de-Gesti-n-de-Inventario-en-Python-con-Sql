@@ -1,0 +1,166 @@
+#Codigo final para un sistema de inventario de productos usando SQLite
+
+import sqlite3
+
+# Conexión a la base de datos
+con = sqlite3.connect("productos.db")
+cur = con.cursor()
+
+#cur es tu cursor de SQLite, el objeto que ejecuta las consultas SQL.
+
+
+# Crear tabla si no existe
+cur.execute("""
+CREATE TABLE IF NOT EXISTS inventario_productos1 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    precio REAL NOT NULL,
+    categoria TEXT NOT NULL,
+    cantidad INTEGER NOT NULL
+)
+""")
+con.commit()
+
+# ================== FUNCIONES ==================
+
+#def mostrar_producto(prod)
+    
+
+def agregar_producto():
+    print("\n--- Alta de producto ---\n")
+    nombre = input("Nombre: ").strip()
+    precio = input("Precio: ").strip()
+    categoria = input("Categoría: ").strip()
+    cantidad = input("Cantidad: ").strip()
+
+    if not nombre or not precio or not categoria or not cantidad:
+        print("❌ Error: ningún campo puede estar vacío.")
+        return
+
+    try:
+        precio = int(precio)
+        cantidad = int(cantidad)
+        cur.execute("INSERT INTO inventario_productos1 (nombre, precio, categoria, cantidad) VALUES (?,?,?,?)",
+                (nombre, precio, categoria, cantidad))
+        con.commit()
+        print("✅ Producto agregado correctamente.")
+
+    except ValueError:
+        print("❌ Precio debe ser número y cantidad debe ser entero.")
+
+
+
+def listar_productos():
+
+    print("\n--- Listado de productos ---\n")
+
+    res = cur.execute("SELECT * FROM inventario_productos1")
+    productos = res.fetchall()
+
+    if not productos:
+        print("No hay productos registrados.")
+        return
+    for p in productos:
+        print(f"ID: {p[0]} | Nombre: {p[1]} | Precio: ${p[2]} | Categoría: {p[3]} | Cantidad: {p[4]}")
+
+def actualizar_stock():
+    print("\n--- Actualizar stock ---\n")
+
+    listar_productos()
+    try:
+        pid = int(input("Ingrese el ID del producto: "))
+        nueva_cantidad = int(input("Nueva cantidad: "))
+        cur.execute("UPDATE inventario_productos1 SET cantidad = ? WHERE id = ?", (nueva_cantidad, pid))
+        con.commit()
+        if cur.rowcount == 0:                                  #rowcount es un atributo del cursor que indica cuántas filas fueron afectadas por la última operación SQL (INSERT, UPDATE, DELETE).
+            print("❌ No se encontró producto con ese ID.")
+        else:
+            print("✅ Stock actualizado correctamente.")
+    except ValueError:
+        print("❌ ID y cantidad deben ser números enteros.")
+
+
+def buscar_producto():
+    print("\n--- Buscar producto (por ID) ---\n")
+    try:
+        pid = int(input("Ingrese el ID del producto a buscar: "))
+        cur.execute("SELECT id, nombre, precio, categoria, cantidad FROM inventario_productos1 WHERE id = ?", (pid,))
+        p = cur.fetchone()
+        
+        if p is None:
+            print("❌ No se encontró producto con ese ID.")
+            return
+        
+        # Mostrar el producto encontrado
+        prod_id, nombre, precio, categoria, cantidad = p
+        print(f"✅ Encontrado ID: {prod_id} | Nombre: {nombre} | Precio: ${precio} | Categoría: {categoria} | Cantidad: {cantidad}")
+        
+    except ValueError:
+        print("❌ El ID debe ser un número entero.")
+
+
+def eliminar_producto():
+    print("\n--- Eliminar producto ---\n")
+    listar_productos()
+    try:
+        pid = int(input("Ingrese el ID a eliminar: "))
+        cur.execute("DELETE FROM inventario_productos1 WHERE id = ?", (pid,))
+        con.commit()
+        if cur.rowcount == 0:
+            print("❌ No se encontró producto con ese ID.")
+        else:
+            print("✅ Producto eliminado correctamente.")
+    except ValueError:
+        print("❌ El ID debe ser un número entero.")
+
+def reporte_bajo_stock():
+    print("\n--- Reporte de bajo stock ---\n")
+    try:
+        limite = int(input("Ingrese el límite de stock: "))
+        res = cur.execute("SELECT * FROM inventario_productos1 WHERE cantidad <= ?", (limite,))
+        productos = res.fetchall()
+        if not productos:
+            print("No hay productos con stock bajo.")
+            return
+        for p in productos:
+            print(f"ID: {p[0]} | Nombre: {p[1]} | Stock: {p[4]} unidades")
+    except ValueError:
+        print("❌ El límite debe ser un número entero.")
+
+# ================== MENÚ ==================
+
+def menu():
+    opcion = ""
+    while opcion != "7":
+        print("\n" + "="*45)
+        print("\n=== Sistema de Inventario ===")
+        print("\n" + "="*45)
+        print("1. Agregar producto")
+        print("2. Listar productos")
+        print("3. Actualizar stock")
+        print("4. Buscar producto")
+        print("5. Eliminar producto")
+        print("6. Reporte bajo stock")
+        print("7. Salir")
+        print("\n" + "="*45)
+
+        opcion = input("Seleccione opción: ").strip()
+
+        if opcion == "1":
+            agregar_producto()
+        elif opcion == "2":
+            listar_productos()
+        elif opcion == "3":
+            actualizar_stock()
+        elif opcion == "4":
+            buscar_producto()
+        elif opcion == "5":
+            eliminar_producto()
+        elif opcion == "6":
+            reporte_bajo_stock()
+        elif opcion == "7":
+            print("\n👋 Cerrando el sistema. ¡Hasta pronto!")  
+
+# ================== EJECUCIÓN ==================
+if __name__ == "__main__":
+    menu()
